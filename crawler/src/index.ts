@@ -13,6 +13,7 @@ interface ProductList {
   id: number;
   title: string;
   price: number;
+  onSale: boolean;
 }
 
 const country: Country = {
@@ -33,10 +34,11 @@ const country: Country = {
   }
 };
 
-const getHtml = async (
-  page: number = 1,
-  country: any
-): Promise<AxiosResponse> => {
+const productList: ProductList[] = [];
+let page = 7;
+let lastPage: number;
+
+const getHtml = async (page: number, country: any): Promise<AxiosResponse> => {
   return await axios.get(`https://iherb.com/c/Categories?noi=192&p=${page}`, {
     headers: {
       cookie: `iher-pref1=sccode=${country.countryCode}&lan=${country.languageCode}&scurcode=USD&wp=2&lchg=0&ifv=1&storeid=0&ctd=www&bi=0&lp=10`
@@ -44,38 +46,49 @@ const getHtml = async (
   });
 };
 
-getHtml(1, country.USA).then(html => {
-  const productList: ProductList[] = [];
-  const $ = cheerio.load(html.data);
-  const $productList = $("div.products").children("div.product-cell-container");
-
-  $productList.each((i, elem) => {
-    const id = ($(elem)
+const getProductData = ($: CheerioStatic, elem: CheerioElement) => {
+  const id = Number(
+    $(elem)
       .find("div.ga-product")
       .attr("itemid")
       ?.trim()
-      ?.replace("pid_", "") as unknown) as number;
-    const title = $(elem)
+      ?.replace("pid_", "")
+  );
+  const title = String(
+    $(elem)
       .find("div.product-title")
       .text()
-      .trim() as string;
-    const price = ($(elem)
+      .trim()
+  );
+  const price = Number(
+    $(elem)
       .find("span.price bdi")
       .text()
       .trim()
       .replace("$", "")
       .replace("₩", "")
-      .replace("¥", "") as unknown) as number;
+      .replace("¥", "")
+  );
 
-    productList.push({
-      id,
-      title,
-      price
-    });
+  return { id, title, price, onSale: true };
+};
+
+const init = async () => {
+  const html = await getHtml(page, country.usa);
+  const $ = cheerio.load(html.data);
+  const $productList = $("div.products").children("div.product-cell-container");
+  const $pages = $("div.pagination").children("a.pagination-link");
+
+  lastPage = ($pages
+    .last()
+    .attr("href")
+    ?.slice(-3) as unknown) as number;
+
+  $productList.each((i, elem) => {
+    productList.push(getProductData($, elem));
   });
 
-  // console.log(productList);
-  // const data = ulList.filter(n => n.title);
-  // return data;
-});
-// .then(res => console.log(res));
+  console.log(productList);
+};
+
+init();

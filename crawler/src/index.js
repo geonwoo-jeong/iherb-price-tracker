@@ -55,49 +55,59 @@ var country = {
         currencySymbol: "¥"
     }
 };
-var getHtml = function (page, country) {
-    if (page === void 0) { page = 1; }
-    return __awaiter(void 0, void 0, void 0, function () {
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, axios_1["default"].get("https://iherb.com/c/Categories?noi=192&p=" + page, {
-                        headers: {
-                            cookie: "iher-pref1=sccode=" + country.countryCode + "&lan=" + country.languageCode + "&scurcode=USD&wp=2&lchg=0&ifv=1&storeid=0&ctd=www&bi=0&lp=10"
-                        }
-                    })];
-                case 1: return [2 /*return*/, _a.sent()];
-            }
-        });
+var productList = [];
+var page = 7;
+var lastPage;
+var getHtml = function (page, country) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, axios_1["default"].get("https://iherb.com/c/Categories?noi=192&p=" + page, {
+                    headers: {
+                        cookie: "iher-pref1=sccode=" + country.countryCode + "&lan=" + country.languageCode + "&scurcode=USD&wp=2&lchg=0&ifv=1&storeid=0&ctd=www&bi=0&lp=10"
+                    }
+                })];
+            case 1: return [2 /*return*/, _a.sent()];
+        }
     });
+}); };
+var getProductData = function ($, elem) {
+    var _a, _b;
+    var id = Number((_b = (_a = $(elem)
+        .find("div.ga-product")
+        .attr("itemid")) === null || _a === void 0 ? void 0 : _a.trim()) === null || _b === void 0 ? void 0 : _b.replace("pid_", ""));
+    var title = String($(elem)
+        .find("div.product-title")
+        .text()
+        .trim());
+    var price = Number($(elem)
+        .find("span.price bdi")
+        .text()
+        .trim()
+        .replace("$", "")
+        .replace("₩", "")
+        .replace("¥", ""));
+    return { id: id, title: title, price: price, onSale: true };
 };
-getHtml(1, country.USA).then(function (html) {
-    var productList = [];
-    var $ = cheerio.load(html.data);
-    var $productList = $("div.products").children("div.product-cell-container");
-    $productList.each(function (i, elem) {
-        var _a, _b;
-        var id = (_b = (_a = $(elem)
-            .find("div.ga-product")
-            .attr("itemid")) === null || _a === void 0 ? void 0 : _a.trim()) === null || _b === void 0 ? void 0 : _b.replace("pid_", "");
-        var title = $(elem)
-            .find("div.product-title")
-            .text()
-            .trim();
-        var price = $(elem)
-            .find("span.price bdi")
-            .text()
-            .trim()
-            .replace("$", "")
-            .replace("₩", "")
-            .replace("¥", "");
-        productList.push({
-            id: id,
-            title: title,
-            price: price
-        });
+var init = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var html, $, $productList, $pages;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0: return [4 /*yield*/, getHtml(page, country.usa)];
+            case 1:
+                html = _b.sent();
+                $ = cheerio.load(html.data);
+                $productList = $("div.products").children("div.product-cell-container");
+                $pages = $("div.pagination").children("a.pagination-link");
+                lastPage = (_a = $pages
+                    .last()
+                    .attr("href")) === null || _a === void 0 ? void 0 : _a.slice(-3);
+                $productList.each(function (i, elem) {
+                    productList.push(getProductData($, elem));
+                });
+                console.log(productList);
+                return [2 /*return*/];
+        }
     });
-    // console.log(productList);
-    // const data = ulList.filter(n => n.title);
-    // return data;
-});
-// .then(res => console.log(res));
+}); };
+init();
